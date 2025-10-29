@@ -52,68 +52,65 @@ def BreadthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 
 
 # Recursive Version
-def DepthFirstSearch(problem: Problem[S, A], initial_state: S, explored = None, current_path = []) -> Solution:
-    
-    if explored is None:
-        explored = set()
+# def DepthFirstSearch(problem: Problem[S, A], initial_state: S, explored = None, current_path = []) -> Solution:
 
-    explored.add(initial_state)
-    if problem.is_goal(initial_state):
-        return current_path
+#     if explored is None:
+#         explored = set()
 
-    for action in problem.get_actions(initial_state):
-        
-        next_state = problem.get_successor(initial_state, action)
+#     explored.add(initial_state)
+#     if problem.is_goal(initial_state):
+#         return current_path
 
-        if next_state in explored:
-            continue
+#     for action in problem.get_actions(initial_state):
 
-        solution = DepthFirstSearch(problem, next_state, explored, current_path + [action])
+#         next_state = problem.get_successor(initial_state, action)
 
-        if solution is None:
-            continue
-        
-        return solution
+#         if next_state in explored:
+#             continue
 
-    return None
+#         solution = DepthFirstSearch(problem, next_state, explored, current_path + [action])
+
+#         if solution is None:
+#             continue
+
+#         return solution
+
+#     return None
 
 
 # [Iterative Version]
-# def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
-#     # TODO: ADD YOUR CODE HERE
-    
-#     frontier = deque([(initial_state, [])])
-#     # set of nodes in frontier for faster search for a specific node
-#     frontier_states = {initial_state}
-#     explored = set()
+def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
+    # TODO: ADD YOUR CODE HERE
 
-#     while frontier:
-#         state, path = frontier.pop()
-        
-#         if problem.is_goal(initial_state):
-#             return path
-        
-#         explored.add(state)
+    frontier = deque([(initial_state, [])])
+    # set of nodes in frontier for faster search for a specific node
+    frontier_states = {initial_state}
+    explored = set()
 
-#         for action in reversed(problem.get_actions(state)):
-#             next_state = problem.get_successor(state, action)
+    while frontier:
+        state, path = frontier.pop()
 
-#             # if the node is already in the frontier or explored --> neglect it
-#             if next_state in explored or next_state in frontier_states:
-#                 continue
+        if problem.is_goal(state):
+            return path
 
-#             new_path = path + [action]
-#             # check if the state is goal state before adding it to the frontier
-#             if problem.is_goal(next_state):
-#                 return new_path
+        explored.add(state)
 
-#             # add it to the frontier
-#             frontier.append((next_state, new_path))
-#             frontier_states.add(next_state)
+        for action in reversed(problem.get_actions(state)):
 
-#     # frontier is empty and no goal is found
-#     return None
+            next_state = problem.get_successor(state, action)
 
+            # if the node is already in the frontier or explored --> neglect it
+            if next_state in explored or next_state in frontier_states:
+                continue
+
+            new_path = path + [action]
+
+            # add it to the frontier
+            frontier.append((next_state, new_path))
+            frontier_states.add(next_state)
+
+    # frontier is empty and no goal is found
+    return None
 
 
 def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
