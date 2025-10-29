@@ -4,7 +4,7 @@ from mathutils import Direction, Point
 from helpers.utils import NotImplemented
 
 #TODO: (Optional) Instead of Any, you can define a type for the parking state
-ParkingState = Any
+ParkingState = Tuple[Point]
 
 # An action of the parking problem is a tuple containing an index 'i' and a direction 'd' where car 'i' should move in the direction 'd'.
 ParkingAction = Tuple[int, Direction]
@@ -21,27 +21,48 @@ class ParkingProblem(Problem[ParkingState, ParkingAction]):
     # This function should return the initial state
     def get_initial_state(self) -> ParkingState:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        return self.cars
     
     # This function should return True if the given state is a goal. Otherwise, it should return False.
     def is_goal(self, state: ParkingState) -> bool:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        # check for every car if it's in its didcated slot
+        for i, pos in enumerate(state):
+            # if the car isn't in any slot -> not a goal
+            # if the car not in its own slot -> not a goal
+            if pos not in self.slots or self.slots[pos] != i: return False
+        return True
     
     # This function returns a list of all the possible actions that can be applied to the given state
     def get_actions(self, state: ParkingState) -> List[ParkingAction]:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        actions = []
+        # set of all points occupied by the cars
+        occupied = set(state)
+        # for every car, you can move up, down, left, right if there's no car already in this slot or no wall
+        for i, pos in enumerate(state):
+            for d in Direction:
+                new_pos = pos + d.to_vector()
+                if new_pos not in occupied and new_pos in self.passages:
+                    actions.append((i, d))
+        return actions
     
     # This function returns a new state which is the result of applying the given action to the given state
     def get_successor(self, state: ParkingState, action: ParkingAction) -> ParkingState:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        i, d = action
+        new_state = list(state)
+        new_state[i] += d.to_vector()
+        return tuple(new_state)
     
     # This function returns the cost of applying the given action to the given state
     def get_cost(self, state: ParkingState, action: ParkingAction) -> float:
         #TODO: ADD YOUR CODE HERE
-        NotImplemented()
+        # cost of each action increases linearly with the rank
+        # where car A of index 0 is of cost 26, Z of index 25 is of cost 1
+        i, _ = action
+        return 26 - i
+        
     
      # Read a parking problem from text containing a grid of tiles
     @staticmethod
