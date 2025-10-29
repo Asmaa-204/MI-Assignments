@@ -79,11 +79,11 @@ def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
         if cost > cost_so_far[state]:
             continue
 
-        explored.add(state)
-
         # if it's the goal, return the path to this node
         if problem.is_goal(state):
             return path
+
+        explored.add(state)
 
         # expand the node
         for action in problem.get_actions(state):
@@ -125,11 +125,11 @@ def AStarSearch(
     while frontier:
         # pop from the frontier
         _, _, total_backward_cost, state, path = heapq.heappop(frontier)
-        # add it to explored set
-        explored.add(state)
         # if the node is goal, return the solution
         if problem.is_goal(state):
             return path
+        # add it to explored set
+        explored.add(state)
         # expand it
         for action in problem.get_actions(state):
             next_state = problem.get_successor(state, action)
@@ -183,11 +183,11 @@ def BestFirstSearch(
     while frontier:
         # pop from the frontier
         _, _, state, path = heapq.heappop(frontier)
-        # add it to explored set
-        explored.add(state)
         # if the node is goal, return the solution
         if problem.is_goal(state):
             return path
+        # add it to explored set
+        explored.add(state)
         # expand it
         for action in problem.get_actions(state):
             next_state = problem.get_successor(state, action)
