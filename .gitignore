@@ -1,0 +1,56 @@
+pycache/
+**/pycache/
+*.py[cod]
+*$py.class
+
+#C extensions
+*.so
+
+#Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+*.egg
+
+#Virtual environments
+.venv/
+venv/
+env/
+ENV/
+venv*/
+.venv*/
+
+#Pytest / coverage / mypy
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+#IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+#OS files
+.DS_Store
+Thumbs.db
+
+#Logs and runtime files
+*.log
+logs/
+tmp/
+*.pid
+
+#Jupyter
+.ipynb_checkpoints/
+
+#Misc
+*.swp
+*.bak
+*.old
+*.orig
+.cache/
+node_modules/
