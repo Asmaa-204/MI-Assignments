@@ -43,7 +43,34 @@ def minimum_remaining_values(problem: Problem, domains: Dict[str, set]) -> str:
 #            since they contain the current domains of unassigned variables only.
 def forward_checking(problem: Problem, assigned_variable: str, assigned_value: Any, domains: Dict[str, set]) -> bool:
     #TODO: Write this function
-    NotImplemented()
+    # For each binary constraints that involve the assigned variable:
+    for constraint in problem.constraints:
+        # only consider binary constraints involving the assigned variable
+        if not isinstance(constraint, BinaryConstraint) or assigned_variable not in constraint.variables:
+            continue
+
+        # get the other variable in the constraint
+        other_var = constraint.get_other(assigned_variable)
+
+        # if other_var is already assigned (not in domains), skip it
+        if other_var not in domains:
+            continue
+
+        # filter domain of the other variable
+        new_domain = set()
+        for value in domains[other_var]:
+            # Check if the constraint is satisfied when assigned_variable is assigned_value
+            if constraint.is_satisfied({assigned_variable: assigned_value, other_var: value}):
+                new_domain.add(value)
+
+        # if domain becomes empty, failure
+        if not new_domain:
+            return False
+
+        # update domain
+        domains[other_var] = new_domain
+            
+    return True
 
 # This function should return the domain of the given variable order based on the "least restraining value" heuristic.
 # IMPORTANT: This function should not modify any of the given arguments.
