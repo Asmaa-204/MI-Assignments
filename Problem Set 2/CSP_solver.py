@@ -102,81 +102,41 @@ def forward_checking(
 #            order them in ascending order (from the lowest to the highest value).
 # IMPORTANT: Don't use the domains inside the problem, use and modify the ones given by the "domains" argument
 #            since they contain the current domains of unassigned variables only.
-
-
-# def least_restraining_values(
-#     problem: Problem, variable_to_assign: str, domains: Dict[str, set]
-# ) -> List[Any]:
-#     # TODO: Write this function
-#     # only consider binary constraints involving the assigned variable
-#     relatet_constraints = [
-#         c
-#         for c in problem.constraints
-#         if isinstance(c, BinaryConstraint) and variable_to_assign in c.variables
-#     ]
-
-#     # a dict of (value, number of allowed remaining values in neighbor variables)
-#     remaining_values = {}
-
-#     # loop for each value in the domain of the variable to assign
-#     for value in domains[variable_to_assign]:
-#         # get the remaining domain elements due to this assignment
-#         new_domain_len = 0
-#         # how many choices remain for neighbors if we assign 'value'
-#         for constraint in relatet_constraints:
-#             other_var = constraint.get_other(variable_to_assign)
-#             for other_val in domains[other_var]:
-#                 if constraint.is_satisfied(
-#                     {variable_to_assign: value, other_var: other_val}
-#                 ):
-#                     new_domain_len += 1
-#         remaining_values[value] = new_domain_len
-
-#     # sort values from least to most constraining
-#     ordered_values = sorted(
-#         remaining_values.keys(), key=lambda v: remaining_values[v], reverse=True
-#     )
-
-#     return ordered_values
-
-
 def least_restraining_values(
     problem: Problem, variable_to_assign: str, domains: Dict[str, set]
 ) -> List[Any]:
-    # Get relevant constraints
-    related_constraints = [
+    # TODO: Write this function
+    # only consider binary constraints involving the assigned variable
+    relatet_constraints = [
         c
         for c in problem.constraints
         if isinstance(c, BinaryConstraint) and variable_to_assign in c.variables
     ]
 
-    # Dict to store how restrictive each value is
-    # We want to MAXIMIZE the remaining values in neighbors, so we'll count total remaining options
-    value_scores = {}
+    # a dict of (value, number of allowed remaining values in neighbor variables)
+    remaining_values = {}
 
-    for value in domains[variable_to_assign]:
-        total_remaining = 0
-
-        # For each constraint involving our variable
-        for constraint in related_constraints:
+    # loop for each value in the domain of the variable to assign
+    for value in domains.get(variable_to_assign, set()):
+        # get the remaining domain elements due to this assignment
+        new_domain_len = 0
+        # how many choices remain for neighbors if we assign 'value'
+        for constraint in relatet_constraints:
             other_var = constraint.get_other(variable_to_assign)
-
-            # Count how many values remain valid for the other variable
-            remaining_count = 0
-
-            # TODO: [shehab]: change this because domains[other_var] may be none
-            for other_val in domains.get(other_var, []):
+            for other_val in domains.get(other_var, set()):
                 if constraint.is_satisfied(
                     {variable_to_assign: value, other_var: other_val}
                 ):
-                    remaining_count += 1
+                    new_domain_len += 1
+        remaining_values[value] = new_domain_len
 
-            total_remaining += remaining_count
+    # sort values from least to most constraining
+    # in case of tie, sort by values asc
+    ordered_values = sorted(
+        remaining_values.keys(), key=lambda v: (-remaining_values[v], v),
+    )
 
-        value_scores[value] = total_remaining
-
-    # Sort by score descending (most remaining values first = least constraining)
-    return sorted(value_scores.keys(), key=lambda v: value_scores[v], reverse=True)
+    return ordered_values
 
 
 # This function should solve CSP problems using backtracking search with forward checking.
@@ -190,45 +150,39 @@ def least_restraining_values(
 #            Also, if 1-Consistency deems the whole problem unsolvable, you shouldn't call "problem.is_complete" at all.
 from copy import deepcopy
 
-
-def backtrack(problem, assignment, domains):
-    # check if the assinment is complete
-    if problem.is_complete(assignment):
-        return assignment
-
-    # choose the variable based on MRV
-    assigned_var = minimum_remaining_values(problem, domains)
-    # choose the value for the chosen variable based on least constraining value
-    ordered_values = least_restraining_values(problem, assigned_var, domains)
-
-    for value in ordered_values:
-
-        assignment[assigned_var] = value
-
-        new_domains = deepcopy(domains)
-        del new_domains[assigned_var]
-
-        # apply forward checking
-        valid_assigment = forward_checking(problem, assigned_var, value, new_domains)
-
-        # if the assigment isn't valid, check for remaining values
-        # else make the assignment
-
-        if valid_assigment:
-            result = backtrack(problem, assignment, new_domains)
-
-            if result is not None:
-                return result
-
-            del assignment[assigned_var]
-    # backtrack
-    # if no values can be assigned for the variable, return failure
-    return None
-
-
 def solve(problem: Problem) -> Optional[Assignment]:
-
+    # if 1-Consistency deems the whole problem unsolvable, return failure
     if not one_consistency(problem):
+        return None
+
+    def backtrack(problem: Problem, assignment: Dict[str, any], domains: Dict[str, set]):
+        # check if the assinment is complete
+        if problem.is_complete(assignment):
+            return assignment
+
+        # choose the variable based on MRV
+        assigned_var = minimum_remaining_values(problem, domains)
+        # choose the value for the chosen variable based on least constraining value
+        ordered_values = least_restraining_values(problem, assigned_var, domains)
+        for value in ordered_values:
+            # make the assignment
+            assignment[assigned_var] = value
+            # remove the current assigned var from the domain
+            new_domains = deepcopy(domains)
+            del new_domains[assigned_var]
+
+            # forward check given new domains
+            # this will remove the invalid domains from neighbors due this assignment if the assignment is valid
+            valid_assignment = forward_checking(problem, assigned_var, value, new_domains)
+            # if this assignment is valid, make it and backtrack
+            if valid_assignment:
+                result = backtrack(problem, assignment, new_domains)
+                # if this sequence of assignments return a solution, return it
+                if result is not None:
+                    return result
+            # not a valid assignment
+            del assignment[assigned_var]
+        # if no values can be assigned for the variable, return failure
         return None
 
     intial_domains = deepcopy(problem.domains)
