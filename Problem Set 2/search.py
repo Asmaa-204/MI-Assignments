@@ -2,10 +2,11 @@ from typing import Tuple
 from game import HeuristicFunction, Game, S, A
 from helpers.utils import NotImplemented
 
-#TODO: Import any modules you want to use
+# TODO: Import any modules you want to use
+import math
 
 # All search functions take a problem, a state, a heuristic function and the maximum search depth.
-# If the maximum search depth is -1, then there should be no depth cutoff (The expansion should not stop before reaching a terminal state) 
+# If the maximum search depth is -1, then there should be no depth cutoff (The expansion should not stop before reaching a terminal state)
 
 # All the search functions should return the expected tree value and the best action to take based on the search results
 
@@ -22,7 +23,7 @@ def greedy(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: 
     return value, action
 
 # Apply Minimax search and return the game tree value and the best action
-# Hint: There may be more than one player, and in all the testcases, it is guaranteed that 
+# Hint: There may be more than one player, and in all the testcases, it is guaranteed that
 # game.get_turn(state) will return 0 (which means it is the turn of the player). All the other players
 # (turn > 0) will be enemies. So for any state "s", if the game.get_turn(s) == 0, it should a max node,
 # and if it is > 0, it should be a min node. Also remember that game.is_terminal(s), returns the values
@@ -30,13 +31,95 @@ def greedy(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: 
 # get values[0].
 def minimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     #TODO: Complete this function
-    NotImplemented()
+    def dfs(s, depth):
+        terminal, values = game.is_terminal(s)
+        if terminal:
+            return values[0], None
+
+        if depth == 0:
+            return heuristic(game, s, 0), None
+
+        turn = game.get_turn(s)
+        actions = game.get_actions(s)
+
+        # if it's a max node (the player)
+        if turn == 0:
+            # tries to maximize its value
+            best_val = float("-inf")
+            best_act = None
+            for a in actions:
+                next_state = game.get_successor(s, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
+                if v > best_val:
+                    best_val = v
+                    best_act = a
+            return best_val, best_act
+
+        # if it's a min node (the enemies)
+        else:
+            # tries to minimize its value
+            best_val = float("inf")
+            best_act = None
+            for a in actions:
+                next_state = game.get_successor(s, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
+                if v < best_val:
+                    best_val = v
+                    best_act = a
+            return best_val, best_act
+
+    return dfs(state, max_depth)
+
 
 # Apply Alpha Beta pruning and return the tree value and the best action
 # Hint: Read the hint for minimax.
 def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
-    #TODO: Complete this function
-    NotImplemented()
+    # TODO: Complete this function
+    def dfs(s, depth, alpha, beta):
+        terminal, values = game.is_terminal(s)
+        if terminal:
+            return values[0], None
+
+        if depth == 0:
+            return heuristic(game, s, 0), None
+
+        turn = game.get_turn(s)
+        actions = game.get_actions(s)
+
+        # if it's a max node (the player)
+        if turn == 0:
+            # tries to maximize its value
+            best_val = float("-inf")
+            best_act = None
+            for a in actions:
+                next_state = game.get_successor(s, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
+                # prune if the current value is not less than what a min node has prev got
+                if v >= beta: return v, best_act
+                if v > best_val:
+                    best_val = v
+                    best_act = a
+                alpha = max(alpha, v)
+            return best_val, best_act
+
+        # if it's a min node (the enemies)
+        else:
+            # tries to minimize its value
+            best_val = float("inf")
+            best_act = None
+            for a in actions:
+                next_state = game.get_successor(s, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
+                # prune if the current value is not higher than what a max node has prev got
+                if v <= alpha: return v, best_act
+                if v < best_val:
+                    best_val = v
+                    best_act = a
+                beta = min(beta, v)
+
+            return best_val, best_act
+
+    return dfs(state, max_depth, float("-inf"), float("inf"))
 
 # Apply Alpha Beta pruning with move ordering and return the tree value and the best action
 # Hint: Read the hint for minimax.
