@@ -30,44 +30,46 @@ def greedy(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: 
 # for all the agents. So to get the value for the player (which acts at the max nodes), you need to
 # get values[0].
 def minimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
-    #TODO: Complete this function
-    def dfs(s, depth):
-        terminal, values = game.is_terminal(s)
-        if terminal:
-            return values[0], None
-
-        if depth == 0:
-            return heuristic(game, s, 0), None
-
-        turn = game.get_turn(s)
-        actions = game.get_actions(s)
-
-        # if it's a max node (the player)
-        if turn == 0:
-            # tries to maximize its value
-            best_val = float("-inf")
-            best_act = None
-            for a in actions:
-                next_state = game.get_successor(s, a)
+    # TODO: Complete this function
+    def dfs(state, depth):
+        # check if it's a terminal state
+        terminal, values = game.is_terminal(state)
+        # if it's a terminal state, return MAX node's utility
+        if terminal: return values[0], None
+        if depth == 0: return heuristic(game, state, 0), None
+        agent = game.get_turn(state)
+        # if it's a max player
+        if agent == 0:
+            # value it tries to maximize
+            value = float("-inf")
+            # action to get the max value
+            best_action = None
+            for action in game.get_actions(state):
+                next_state = game.get_successor(state, action)
                 v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
-                if v > best_val:
-                    best_val = v
-                    best_act = a
-            return best_val, best_act
-
-        # if it's a min node (the enemies)
-        else:
-            # tries to minimize its value
-            best_val = float("inf")
-            best_act = None
-            for a in actions:
-                next_state = game.get_successor(s, a)
+                # if the value returned from min node is higher than the node's value
+                if v > value:
+                    # update node's value
+                    value = v
+                    # update the action
+                    best_action = action
+            return value, best_action
+        # if it's a min player
+        else: 
+            # value it tries to minimize
+            value = float("inf")
+            # action to get the min value
+            best_action = None
+            for action in game.get_actions(state):
+                next_state = game.get_successor(state, action)
                 v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
-                if v < best_val:
-                    best_val = v
-                    best_act = a
-            return best_val, best_act
-
+                # if the value returned from a node is less than the node's value
+                if v < value:
+                    # update node's value
+                    value = v
+                    # update the action
+                    best_action = action
+            return value, best_action
     return dfs(state, max_depth)
 
 
@@ -89,35 +91,35 @@ def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_dept
         # if it's a max node (the player)
         if turn == 0:
             # tries to maximize its value
-            best_val = float("-inf")
-            best_act = None
+            value = float("-inf")
+            action = None
             for a in actions:
                 next_state = game.get_successor(s, a)
                 v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
                 # prune if the current value is not less than what a min node has prev got
-                if v >= beta: return v, best_act
-                if v > best_val:
-                    best_val = v
-                    best_act = a
+                if v >= beta: return v, action
+                if v > value:
+                    value = v
+                    action = a
                 alpha = max(alpha, v)
-            return best_val, best_act
+            return value, action
 
         # if it's a min node (the enemies)
         else:
             # tries to minimize its value
-            best_val = float("inf")
-            best_act = None
+            value = float("inf")
+            action = None
             for a in actions:
                 next_state = game.get_successor(s, a)
                 v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
                 # prune if the current value is not higher than what a max node has prev got
-                if v <= alpha: return v, best_act
-                if v < best_val:
-                    best_val = v
-                    best_act = a
+                if v <= alpha: return v, action
+                if v < value:
+                    value = v
+                    action = a
                 beta = min(beta, v)
 
-            return best_val, best_act
+            return value, action
 
     return dfs(state, max_depth, float("-inf"), float("inf"))
 
