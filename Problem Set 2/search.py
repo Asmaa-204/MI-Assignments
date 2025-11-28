@@ -140,7 +140,7 @@ def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: Heuristi
         
         # sort actions based on the heuristics of the actual utility
         # if it's a max node, start with the action that yields highest heuristic
-
+        # else (min node) sort them ascendingly
         sorted_actions = sorted(actions, key=lambda a: heuristic(game, game.get_successor(state, a), 0), reverse=agent==0)
         # if it's a max node (the player)
         if agent == 0:
