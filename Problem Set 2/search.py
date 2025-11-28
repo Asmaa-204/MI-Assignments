@@ -133,5 +133,40 @@ def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: Heuristi
 # Hint: Read the hint for minimax, but note that the monsters (turn > 0) do not act as min nodes anymore,
 # they now act as chance nodes (they act randomly).
 def expectimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
-    #TODO: Complete this function
-    NotImplemented()
+    # TODO: Complete this function
+    def dfs(state, depth):
+        # check if it's a terminal state
+        terminal, values = game.is_terminal(state)
+        # if it's a terminal state, return MAX node's utility
+        if terminal: return values[0], None
+        if depth == 0: return heuristic(game, state, 0), None
+        agent = game.get_turn(state)
+
+        # max node
+        if agent == 0:
+            # value it tries to maximize
+            value = float("-inf")
+            # action to get the max value
+            best_action = None
+            for action in game.get_actions(state):
+                next_state = game.get_successor(state, action)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
+                # if the value returned from min node is higher than the node's value
+                if v > value:
+                    # update node's value
+                    value = v
+                    # update the action
+                    best_action = action
+            return value, best_action
+        # chance node
+        else: 
+            values = []
+            for action in game.get_actions(state):
+                next_state = game.get_successor(state, action)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1)
+                values.append(v)
+            # returns the expected value from all actions
+            expectation = sum(values) / len(values)
+            return expectation, None
+
+    return dfs(state, max_depth)
