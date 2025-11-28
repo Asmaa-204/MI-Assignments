@@ -122,10 +122,4 @@ class CryptArithmeticProblem(Problem):
     def from_file(path: str) -> "CryptArithmeticProblem":
         with open(path, 'r') as f:
             return CryptArithmeticProblem.from_text(f.read())
-
-
-#    c3 c2 c1 c0
-#       T  W  O
-#    F  I  V  E
-# ---------------
-#    E  V  E  N
+        
