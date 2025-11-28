@@ -52,101 +52,68 @@ class CryptArithmeticProblem(Problem):
         problem.variables = []
         problem.domains = {}
         problem.constraints = []
-        # All unique letters
-        letters = set(LHS0 + LHS1 + RHS)
-        for l in letters:
-            problem.variables.append(l)
-            problem.domains[l] = set(range(10))
 
-        # Add uniqueness constraints (all letters must have different digits)
-        letter_list = list(letters)
-        for i in range(len(letter_list)):
-            for j in range(i + 1, len(letter_list)):
-                l1, l2 = letter_list[i], letter_list[j]
-                problem.constraints.append(BinaryConstraint((l1, l2), lambda a, b: a != b))
+        # add all unique letters to variables with domain 0->9
+        letters = sorted(set(LHS0 + LHS1 + RHS))
+        problem.variables = list(letters)
+        problem.domains = {l: list(range(10)) for l in letters}
 
-        # Carry variables
+        # uniqueness constraints (all letters values' have to be unique)
+        letters = list(letters)
+        for i in range(len(letters)):
+            for j in range(i + 1, len(letters)):
+                problem.constraints.append(
+                    BinaryConstraint((letters[i], letters[j]), lambda a, b: a != b)
+                )
+
+        # add auxiliary carry variables with domain of 0 or 1
         n = len(RHS)
         carries = [f"c{i}" for i in range(n)]
         for c in carries:
             problem.variables.append(c)
-            problem.domains[c] = {0, 1}
+            problem.domains[c] = [0, 1]
 
-        # Pad LHS numbers with '0' (just for alignment, don't treat '0' as variable)
-        L0 = LHS0.rjust(n, "0")
-        L1 = LHS1.rjust(n, "0")
+        # pad LHS numbers with 0's on the left for alignment
+        L0, L1 = LHS0.rjust(n, "0"), LHS1.rjust(n, "0")
 
-        # Add unary constraints for leading digits (cannot be zero)
-        if len(LHS0) > 1:
-            problem.constraints.append(
-                UnaryConstraint(LHS0[0], lambda val, l=LHS0[0]: val != 0)
-            )
-        if len(LHS1) > 1:
-            problem.constraints.append(
-                UnaryConstraint(LHS1[0], lambda val, l=LHS1[0]: val != 0)
-            )
-        if len(RHS) > 1:
-            problem.constraints.append(
-                UnaryConstraint(RHS[0], lambda val, l=RHS[0]: val != 0)
-            )
+        # left most digits can't be zero
+        for word in (LHS0, LHS1, RHS):
+            if len(word) > 1:
+                problem.constraints.append(UnaryConstraint(word[0], lambda val: val != 0))
 
-        # --- Column-wise tuple variables for sums ---
+        # column-wise sum tuples
+        # add new auxiliary variables for each constrain lhs0 + lhs1 + cin = rhs + cout
+        # where p is a tuple contains (lhs0, lhs1, cin)
         ps = [f"p{i}" for i in range(n)]
         for i in range(n):
-            lhs0 = L0[-1 - i]
-            lhs1 = L1[-1 - i]
-            rhs = RHS[-1 - i]
-
-            cin = carries[i]
-            cout = carries[i + 1] if i + 1 < n else None
+            # start from rigth
+            lhs0, lhs1, rhs = L0[-1 - i], L1[-1 - i], RHS[-1 - i]
+            cin, cout = carries[i], carries[i + 1] if i + 1 < n else None
             p = ps[i]
 
             problem.variables.append(p)
-            # Domain: all possible combinations of (lhs0_digit, lhs1_digit, carry_in)
             problem.domains[p] = [
                 (a, b, c) for a in range(10) for b in range(10) for c in range(2)
             ]
 
-            # Connect tuple inputs to real variables
-            problem.constraints.append(
-                BinaryConstraint(
-                    (p, lhs0), lambda p_val, lhs0_val, l=lhs0: p_val[0] == lhs0_val
-                )
-            )
-            problem.constraints.append(
-                BinaryConstraint(
-                    (p, lhs1), lambda p_val, lhs1_val, l=lhs1: p_val[1] == lhs1_val
-                )
-            )
-            problem.constraints.append(
-                BinaryConstraint(
-                    (p, cin), lambda p_val, cin_val, c=cin: p_val[2] == cin_val
-                )
-            )
+            # Connect tuple inputs
+            problem.constraints += [
+                BinaryConstraint( (p, lhs0), lambda p_val, lhs0_val: p_val[0] == lhs0_val ), 
+                BinaryConstraint( (p, lhs1), lambda p_val, lhs1_val: p_val[1] == lhs1_val ), 
+                BinaryConstraint( (p, cin), lambda p_val, cin_val: p_val[2] == cin_val )
+            ]
 
-            # Connect tuple outputs
-            problem.constraints.append(
-                BinaryConstraint(
-                    (p, rhs),
-                    lambda p_val, rhs_val: rhs_val == (p_val[0] + p_val[1] + p_val[2]) % 10,
-                )
-            )
-            if cout:
-                problem.constraints.append(
-                    BinaryConstraint(
-                        (p, cout),
-                        lambda p_val, cout_val: cout_val
-                        == (p_val[0] + p_val[1] + p_val[2]) // 10,
-                    )
-                )
-                
-            if lhs0 == "0":
-                problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[0] == 0))
-            if lhs1 == "0":
-                problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[1] == 0))
-            if i == "0":
-                problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[2] == 0))
-            
+            # output constraints
+            problem.constraints.append(BinaryConstraint((p, rhs), lambda pv, rv: rv == (pv[0] + pv[1] + pv[2]) % 10))
+            problem.constraints.append(BinaryConstraint((p, cout), lambda pv, cv: cv == (pv[0] + pv[1] + pv[2]) // 10))
+            # most significant column must not produce a carry
+            if i == n - 1: problem.constraints.append(UnaryConstraint(p, lambda pv: (pv[0] + pv[1] + pv[2]) < 10))
+            # ensure the first carry_in is 0
+            if i == 0: problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[2] == 0))
+
+            # if either lhs0 or lhs1 is "0" -> add its unary constraint to the corresponding variable in p
+            if lhs0 == "0": problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[0] == 0))
+            if lhs1 == "0": problem.constraints.append(UnaryConstraint(p, lambda p_val: p_val[1] == 0))
 
         return problem
 
@@ -155,3 +122,10 @@ class CryptArithmeticProblem(Problem):
     def from_file(path: str) -> "CryptArithmeticProblem":
         with open(path, 'r') as f:
             return CryptArithmeticProblem.from_text(f.read())
+
+
+#    c3 c2 c1 c0
+#       T  W  O
+#    F  I  V  E
+# ---------------
+#    E  V  E  N
