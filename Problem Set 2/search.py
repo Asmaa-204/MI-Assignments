@@ -127,8 +127,55 @@ def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_dept
 # Hint: Read the hint for minimax.
 def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     #TODO: Complete this function
-    NotImplemented()
+    def dfs(state, depth, alpha, beta):
+        terminal, values = game.is_terminal(state)
+        if terminal:
+            return values[0], None
 
+        if depth == 0:
+            return heuristic(game, state, 0), None
+
+        agent = game.get_turn(state)
+        actions = game.get_actions(state)
+        
+        # sort actions based on the heuristics of the actual utility
+        # if it's a max node, start with the action that yields highest heuristic
+
+        sorted_actions = sorted(actions, key=lambda a: heuristic(game, game.get_successor(state, a), 0), reverse=agent==0)
+        # if it's a max node (the player)
+        if agent == 0:
+            # tries to maximize its value
+            value = float("-inf")
+            action = None
+            for a in sorted_actions:
+                next_state = game.get_successor(state, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
+                # prune if the current value is not less than what a min node has prev got
+                if v >= beta: return v, action
+                if v > value:
+                    value = v
+                    action = a
+                alpha = max(alpha, v)
+            return value, action
+
+        # if it's a min node (the enemies)
+        else:
+            # tries to minimize its value
+            value = float("inf")
+            action = None
+            for a in sorted_actions:
+                next_state = game.get_successor(state, a)
+                v, _ = dfs(next_state, depth - 1 if depth > 0 else -1, alpha, beta)
+                # prune if the current value is not higher than what a max node has prev got
+                if v <= alpha: return v, action
+                if v < value:
+                    value = v
+                    action = a
+                beta = min(beta, v)
+
+            return value, action
+
+    return dfs(state, max_depth, float("-inf"), float("inf"))
 # Apply Expectimax search and return the tree value and the best action
 # Hint: Read the hint for minimax, but note that the monsters (turn > 0) do not act as min nodes anymore,
 # they now act as chance nodes (they act randomly).
